@@ -172,7 +172,7 @@ app.get("/facebook/profile-picture/:user", async (c) => {
 });
 
 app.get("/rss", async (c) => {
-    const user = c.req.query("username");
+    const user = c.req.query("username")?.toLowerCase();
 
     if (!user) {
         throw new HTTPException(HTTP_400_BAD_REQUEST, { message: "Missing user query parameter" });

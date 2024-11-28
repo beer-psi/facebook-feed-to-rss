@@ -28,8 +28,6 @@ const TWITTER_COOKIES = Deno.env.get("TWITTER_COOKIES") ?? "";
 const HEADERS = {
     accept: "*/*",
     "accept-language": "en-US,en;q=0.5",
-    "origin": "https://www.facebook.com",
-    "referer": "https://www.facebook.com/",
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",
@@ -94,7 +92,13 @@ app.get("/facebook/image/:id", async (c) => {
     url.searchParams.set("access_token", GRAPH_ACCESS_TOKEN);
     url.searchParams.set("fields", "images");
 
-    const resp = await fetch(url, { headers: HEADERS });
+    const resp = await fetch(url, {
+        headers: {
+            ...HEADERS,
+            origin: "https://www.facebook.com",
+            referer: "https://www.facebook.com/",
+        },
+    });
     const data = (await resp.json()) as FacebookImageCollection | FacebookError;
 
     if ("error" in data) {
@@ -117,7 +121,13 @@ app.get("/facebook/video/:id", async (c) => {
     url.searchParams.set("access_token", GRAPH_ACCESS_TOKEN);
     url.searchParams.set("fields", "source");
 
-    const resp = await fetch(url, { headers: HEADERS });
+    const resp = await fetch(url, {
+        headers: {
+            ...HEADERS,
+            origin: "https://www.facebook.com",
+            referer: "https://www.facebook.com/",
+        },
+    });
     const data = (await resp.json()) as
         | { id: string; source: string }
         | FacebookError;
@@ -141,7 +151,13 @@ app.get("/facebook/profile-picture/:user", async (c) => {
     url.searchParams.set("access_token", GRAPH_ACCESS_TOKEN);
     url.searchParams.set("fields", "picture");
 
-    const resp = await fetch(url, { headers: HEADERS });
+    const resp = await fetch(url, {
+        headers: {
+            ...HEADERS,
+            origin: "https://www.facebook.com",
+            referer: "https://www.facebook.com/",
+        },
+    });
     const data = (await resp.json()) as
         | Pick<FacebookProfile, "picture">
         | FacebookError;
@@ -198,7 +214,13 @@ app.get("/rss", async (c) => {
         "name,about,link,picture,posts{created_time,message,story,permalink_url,attachments}",
     );
 
-    const resp = await fetch(url, { headers: HEADERS });
+    const resp = await fetch(url, {
+        headers: {
+            ...HEADERS,
+            origin: "https://www.facebook.com",
+            referer: "https://www.facebook.com/",
+        },
+    });
     const data = (await resp.json()) as FacebookProfile | FacebookError;
 
     if ("error" in data) {
@@ -337,10 +359,13 @@ app.get("/twitter-rss/:username", async (c) => {
         `/srv/timeline-profile/screen-name/${encodeURIComponent(username)}`,
         "https://syndication.twitter.com",
     );
-    const resp = await twitterFetch(
-        url,
-        { headers: HEADERS },
-    );
+    const resp = await twitterFetch(url, {
+        headers: {
+            ...HEADERS,
+            origin: "https://syndication.twitter.com",
+            referer: "https://syndication.twitter.com/",
+        },
+    });
     const $ = cheerio.load(await resp.text());
 
     const rawData = $("#__NEXT_DATA__").html();

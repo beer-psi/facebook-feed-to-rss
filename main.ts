@@ -2,6 +2,7 @@ import * as dotenv from "@std/dotenv";
 import * as cheerio from "cheerio";
 import { Hono } from "@hono/hono";
 import { HTTPException } from "@hono/hono/http-exception";
+import { logger } from "@hono/hono/logger";
 import { openKvToolbox } from "@kitsonk/kv-toolbox";
 import { Feed } from "feed";
 import makeFetchCookie from "fetch-cookie";
@@ -47,6 +48,8 @@ if (TWITTER_COOKIES) {
 }
 
 const app = new Hono();
+
+app.use(logger());
 
 app.get("/facebook/image/:id", async (c) => {
     const url = new URL(

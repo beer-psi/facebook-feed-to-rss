@@ -1,6 +1,6 @@
 {
     "tasks": {
-        "dev": "deno run --watch --allow-all --unstable-kv main.ts"
+        "dev": "deno run --watch --allow-all --unstable-kv --unstable-cron main.ts"
     },
     "imports": {
         "@hono/hono": "jsr:@hono/hono@^4.6.12",

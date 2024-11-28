@@ -346,6 +346,8 @@ app.get("/twitter-rss/:username", async (c) => {
             ),
         );
 
+        items.sort((a, b) => b.value.date.valueOf() - a.value.date.valueOf());
+
         for (const item of items) {
             feed.addItem(item.value);
         }
@@ -471,6 +473,16 @@ app.get("/twitter-rss/:username", async (c) => {
     return c.text(feed.rss2(), HTTP_200_OK, {
         "Content-Type": "application/rss+xml; charset=utf-8",
     });
+});
+
+Deno.cron("reset cache", "13 0 * * *", async () => {
+    const atomic = kv.atomic();
+
+    for await (const item of kv.list({ prefix: [] })) {
+        atomic.delete(item.key);
+    }
+
+    await atomic.commit();
 });
 
 Deno.serve(

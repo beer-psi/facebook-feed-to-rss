@@ -182,8 +182,8 @@ app.get("/rss", async (c) => {
     };
     const feed = new Feed(feedOptions);
     const atomic = kv.atomic()
-        .set(["facebook", data.id], feedOptions, { expireIn: 30 * 60 * 1000 })
-        .set(["facebook", user], feedOptions, { expireIn: 30 * 60 * 1000 });
+        .set(["facebook", data.id], feedOptions, { expireIn: 15 * 60 * 1000 })
+        .set(["facebook", user], feedOptions, { expireIn: 15 * 60 * 1000 });
 
     for (const post of data.posts.data) {
         const postId = post.id.split("_")[1];
@@ -260,8 +260,8 @@ app.get("/rss", async (c) => {
         };
 
         feed.addItem(item);
-        atomic.set(["facebook", data.id, postId], item, { expireIn: 30 * 60 * 1000 })
-            .set(["facebook", user, postId], item, { expireIn: 30 * 60 * 1000 });
+        atomic.set(["facebook", data.id, postId], item, { expireIn: 15 * 60 * 1000 })
+            .set(["facebook", user, postId], item, { expireIn: 15 * 60 * 1000 });
     }
 
     await atomic.commit();
@@ -331,7 +331,7 @@ app.get("/twitter-rss/:username", async (c) => {
     const feed = new Feed(feedOptions);
 
     const atomic = kv.atomic().set(["twitter", username], feedOptions, {
-        expireIn: 30 * 60 * 1000,
+        expireIn: 15 * 60 * 1000,
     });
 
     for (const tweet of timeline.entries) {
@@ -391,7 +391,7 @@ app.get("/twitter-rss/:username", async (c) => {
 
         feed.addItem(item);
         atomic.set(["twitter", username, tweet.content.tweet.id_str], item, {
-            expireIn: 30 * 60 * 1000,
+            expireIn: 15 * 60 * 1000,
         });
     }
 

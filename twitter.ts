@@ -138,41 +138,44 @@ type SyndicationUser = {
     is_blue_verified: boolean;
 };
 
+type SyndicationTweet = {
+    id: 0;
+    location: string;
+    conversation_id_str: string;
+    created_at: string;
+    display_text_range: [number, number];
+    entities: {
+        user_mentions: Array<unknown>;
+        symbols: Array<unknown>;
+        urls: Array<SyndicationUrlEntity>;
+        hashtags: Array<SyndicationHashtagEntity>;
+        media: Array<SyndicationPhotoEntity | SyndicationVideoEntity>;
+    };
+    extended_entities: {
+        media: Array<SyndicationPhotoEntity | SyndicationVideoEntity>;
+    };
+    favorite_count: number;
+    favorited: boolean;
+    full_text: string;
+    id_str: string;
+    lang: string;
+    permalink: string;
+    possibly_sensitive: boolean;
+    quote_count: number;
+    reply_count: number;
+    retweet_count: number;
+    retweeted: boolean;
+    text: string;
+    user: SyndicationUser;
+    retweeted_status?: SyndicationTweet;
+};
+
 type SyndicationTimelineEntry = {
     type: "tweet";
     entry_id: string;
     sort_index: string;
     content: {
-        tweet: {
-            id: 0;
-            location: string;
-            conversation_id_str: string;
-            created_at: string;
-            display_text_range: [number, number];
-            entities: {
-                user_mentions: Array<unknown>;
-                symbols: Array<unknown>;
-                urls: Array<SyndicationUrlEntity>;
-                hashtags: Array<SyndicationHashtagEntity>;
-                media: Array<SyndicationPhotoEntity | SyndicationVideoEntity>;
-            };
-            extended_entities: {
-                media: Array<SyndicationPhotoEntity | SyndicationVideoEntity>;
-            };
-            favorite_count: number;
-            favorited: boolean;
-            full_text: string;
-            id_str: string;
-            lang: string;
-            permalink: string;
-            possibly_sensitive: boolean;
-            quote_count: number;
-            reply_count: number;
-            retweet_count: number;
-            retweeted: boolean;
-            text: string;
-            user: SyndicationUser;
-        };
+        tweet: SyndicationTweet;
     };
 };
 

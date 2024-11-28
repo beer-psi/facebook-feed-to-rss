@@ -381,6 +381,10 @@ app.get("/twitter-rss/:username", async (c) => {
             continue;
         }
 
+        if (tweet.content.tweet.retweeted_status) {
+            continue;
+        }
+
         const content = tweet.content.tweet.full_text
             .replaceAll("&", "&amp;")
             .replaceAll("<", "&lt;")

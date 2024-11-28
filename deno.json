@@ -1,0 +1,26 @@
+{
+  "tasks": {
+    "dev": "deno run --watch --allow-all --unstable-kv main.ts"
+  },
+  "imports": {
+    "@hono/hono": "jsr:@hono/hono@^4.6.12",
+    "@kitsonk/kv-toolbox": "jsr:@kitsonk/kv-toolbox@^0.23.0",
+    "@std/assert": "jsr:@std/assert@1",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.2",
+    "cheerio": "npm:cheerio@^1.0.0",
+    "feed": "npm:feed@^4.2.2",
+    "fetch-cookie": "npm:fetch-cookie@^3.0.1"
+  },
+  "deploy": {
+    "project": "845f6a87-c1aa-4b97-9f3d-49aa8d32d7cb",
+    "exclude": [
+      ".env",
+      "graph.json",
+      "next_data.json",
+      "cookies.txt",
+      "**/node_modules"
+    ],
+    "include": [],
+    "entrypoint": "main.ts"
+  }
+}

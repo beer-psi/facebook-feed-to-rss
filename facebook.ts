@@ -32,6 +32,7 @@ type FacebookPhotoishAttachment =
     & (
         | { type: "photo"; description: string }
         | { type: "cover_photo"; title: string }
+        | { type: "profile_media"; title: string }
     )
     & {
         target: {
@@ -106,10 +107,11 @@ export type FacebookPost = {
 export type FacebookPaginationResult<T> = {
     data: Array<T>;
     paging: {
-        cursors: {
+        cursors?: {
             before: string;
             after: string;
         };
+        previous?: string;
         next: string;
     };
 };
@@ -120,5 +122,19 @@ export type FacebookProfile = {
     link: string;
     picture: FacebookProfilePicture;
     posts: FacebookPaginationResult<FacebookPost>;
+    id: string;
+};
+
+export type FacebookGroup = {
+    name: string;
+    description: string;
+    cover: {
+        cover_id: string;
+        offset_x: number;
+        offset_y: number;
+        source: string;
+        id: string;
+    };
+    feed: FacebookPaginationResult<FacebookPost>;
     id: string;
 };

@@ -20,6 +20,11 @@ import { NextData, SyndicationProps } from "./twitter.ts";
 import { FeedOptions } from "feed";
 import { Item } from "feed";
 
+type CachedFeed = {
+    feed: FeedOptions;
+    items: Array<Item>;
+};
+
 await dotenv.load({ export: true });
 
 const BASE_URL = Deno.env.get("BASE_URL");
@@ -60,9 +65,9 @@ app.use(async (c, next) => {
     const time = new Date();
 
     console.log(
-        `<-- id=${
-            c.get("requestId")
-        } ip=${connInfo.remote.address} method=${method} path=${path} query=${
+        `<-- id=${c.get("requestId")} ip=${connInfo.remote.address} user_agent=${
+            c.req.header("User-Agent")
+        } method=${method} path=${path} query=${
             JSON.stringify(params ?? {})
         } timestamp=${time.toISOString()}`,
     );
@@ -178,24 +183,38 @@ app.get("/rss", async (c) => {
         throw new HTTPException(HTTP_400_BAD_REQUEST, { message: "Missing user query parameter" });
     }
 
-    const cachedFeedOptions = await kv.get<FeedOptions>(
+    const cachedFeedData = await kv.getAsBlob(
         ["facebook", user],
         { consistency: "eventual" },
     );
 
-    if (cachedFeedOptions.value !== null) {
-        const feed = new Feed(cachedFeedOptions.value);
-        const items = await Array.fromAsync(
-            kv.list<Item>(
-                { prefix: ["facebook", user] },
-                { consistency: "eventual" },
-            ),
+    if (cachedFeedData !== null) {
+        const resp = new Response(
+            cachedFeedData.stream().pipeThrough(new DecompressionStream("gzip")),
+        );
+        const cachedFeed: CachedFeed = JSON.parse(
+            await resp.text(),
         );
 
-        items.sort((a, b) => b.value.date.valueOf() - a.value.date.valueOf());
+        if (cachedFeed.feed.updated) {
+            cachedFeed.feed.updated = new Date(cachedFeed.feed.updated);
+        }
+
+        const feed = new Feed(cachedFeed.feed);
+        const items = cachedFeed.items;
+
+        items.sort((a, b) => b.date.valueOf() - a.date.valueOf());
 
         for (const item of items) {
-            feed.addItem(item.value);
+            if (item.date) {
+                item.date = new Date(item.date);
+            }
+
+            if (item.published) {
+                item.published = new Date(item.published);
+            }
+
+            feed.addItem(item);
         }
 
         return c.text(feed.rss2(), HTTP_200_OK, {
@@ -240,9 +259,6 @@ app.get("/rss", async (c) => {
         copyright: "",
     };
     const feed = new Feed(feedOptions);
-    const atomic = kv.atomic()
-        .set(["facebook", data.id], feedOptions, { expireIn: 15 * 60 * 1000 })
-        .set(["facebook", user], feedOptions, { expireIn: 15 * 60 * 1000 });
 
     for (const post of data.posts.data) {
         const postId = post.id.split("_")[1];
@@ -269,7 +285,8 @@ app.get("/rss", async (c) => {
             for (const attachment of post.attachments.data) {
                 if (
                     attachment.type === "photo" ||
-                    attachment.type === "cover_photo"
+                    attachment.type === "cover_photo" ||
+                    attachment.type === "profile_media"
                 ) {
                     description += `\n<br><img src="${new URL(
                         `/facebook/image/${attachment.target.id}`,
@@ -289,7 +306,8 @@ app.get("/rss", async (c) => {
                     ) {
                         if (
                             subattachment.type === "photo" ||
-                            subattachment.type === "cover_photo"
+                            subattachment.type === "cover_photo" ||
+                            subattachment.type === "profile_media"
                         ) {
                             description += `\n<br><img src="${new URL(
                                 `/facebook/image/${subattachment.target.id}`,
@@ -319,11 +337,29 @@ app.get("/rss", async (c) => {
         };
 
         feed.addItem(item);
-        atomic.set(["facebook", data.id, postId], item, { expireIn: 15 * 60 * 1000 })
-            .set(["facebook", user, postId], item, { expireIn: 15 * 60 * 1000 });
     }
 
-    await atomic.commit();
+    const cached = JSON.stringify({
+        feed: feed.options,
+        items: feed.items,
+    });
+
+    await kv.atomic()
+        .setBlob(
+            ["facebook", data.id],
+            new Blob([cached], { type: "application/json" })
+                .stream()
+                .pipeThrough(new CompressionStream("gzip")),
+            { expireIn: 30 * 60 * 1000 },
+        )
+        .setBlob(
+            ["facebook", user],
+            new Blob([cached], { type: "application/json" })
+                .stream()
+                .pipeThrough(new CompressionStream("gzip")),
+            { expireIn: 30 * 60 * 1000 },
+        )
+        .commit();
 
     return c.text(feed.rss2(), HTTP_200_OK, {
         "Content-Type": "application/rss+xml; charset=utf-8",
@@ -333,23 +369,38 @@ app.get("/rss", async (c) => {
 app.get("/twitter-rss/:username", async (c) => {
     const username = c.req.param("username").toLowerCase();
 
-    const cachedFeedOptions = await kv.get<FeedOptions>(["twitter", username], {
-        consistency: "eventual",
-    });
+    const cachedFeedData = await kv.getAsBlob(
+        ["twitter", username],
+        { consistency: "eventual" },
+    );
 
-    if (cachedFeedOptions.value) {
-        const feed = new Feed(cachedFeedOptions.value);
-        const items = await Array.fromAsync(
-            kv.list<Item>(
-                { prefix: ["twitter", username] },
-                { consistency: "eventual" },
-            ),
+    if (cachedFeedData !== null) {
+        const resp = new Response(
+            cachedFeedData.stream().pipeThrough(new DecompressionStream("gzip")),
+        );
+        const cachedFeed: CachedFeed = JSON.parse(
+            await resp.text(),
         );
 
-        items.sort((a, b) => b.value.date.valueOf() - a.value.date.valueOf());
+        if (cachedFeed.feed.updated) {
+            cachedFeed.feed.updated = new Date(cachedFeed.feed.updated);
+        }
+
+        const feed = new Feed(cachedFeed.feed);
+        const items = cachedFeed.items;
+
+        items.sort((a, b) => b.date.valueOf() - a.date.valueOf());
 
         for (const item of items) {
-            feed.addItem(item.value);
+            if (item.date) {
+                item.date = new Date(item.date);
+            }
+
+            if (item.published) {
+                item.published = new Date(item.published);
+            }
+
+            feed.addItem(item);
         }
 
         return c.text(feed.rss2(), HTTP_200_OK, {
@@ -398,10 +449,6 @@ app.get("/twitter-rss/:username", async (c) => {
         copyright: "",
     };
     const feed = new Feed(feedOptions);
-
-    const atomic = kv.atomic().set(["twitter", username], feedOptions, {
-        expireIn: 15 * 60 * 1000,
-    });
 
     for (const tweet of timeline.entries) {
         if (tweet.type !== "tweet") {
@@ -463,19 +510,27 @@ app.get("/twitter-rss/:username", async (c) => {
         };
 
         feed.addItem(item);
-        atomic.set(["twitter", username, tweet.content.tweet.id_str], item, {
-            expireIn: 15 * 60 * 1000,
-        });
     }
 
-    await atomic.commit();
+    const cached = JSON.stringify({
+        feed: feed.options,
+        items: feed.items,
+    });
+
+    await kv.setBlob(
+        ["twitter", username],
+        new Blob([cached], { type: "application/json" })
+            .stream()
+            .pipeThrough(new CompressionStream("gzip")),
+        { expireIn: 30 * 60 * 1000 },
+    );
 
     return c.text(feed.rss2(), HTTP_200_OK, {
         "Content-Type": "application/rss+xml; charset=utf-8",
     });
 });
 
-Deno.cron("reset cache", "13 0 * * *", async () => {
+Deno.cron("reset cache", "0 0 * * *", async () => {
     const atomic = kv.atomic();
 
     for await (const item of kv.list({ prefix: [] })) {

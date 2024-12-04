@@ -1,5 +1,5 @@
-import { Hono } from "@hono/hono";
-import { basicAuth } from "@hono/hono/basic-auth";
+import { Hono } from "jsr:@hono/hono";
+import { basicAuth } from "jsr:@hono/hono/basic-auth";
 
 const AUTH_USER = Deno.env.get("AUTH_USER");
 const AUTH_PASSWORD = Deno.env.get("AUTH_PASSWORD");

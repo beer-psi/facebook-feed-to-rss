@@ -1,0 +1,11 @@
+FROM denoland/deno
+
+EXPOSE 8888
+
+WORKDIR /app
+
+ADD proxy.ts /app
+
+RUN deno install --entrypoint proxy.ts
+
+CMD ["run", "--allow-all", "proxy.ts"]

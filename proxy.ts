@@ -1,8 +1,8 @@
-import { getConnInfo } from "@hono/hono/deno";
-import { getPath, getQueryParams } from "@hono/hono/utils/url";
 import { Hono } from "jsr:@hono/hono";
 import { basicAuth } from "jsr:@hono/hono/basic-auth";
+import { getConnInfo } from "jsr:@hono/hono/deno";
 import { requestId, RequestIdVariables } from "jsr:@hono/hono/request-id";
+import { getPath, getQueryParams } from "jsr:@hono/hono/utils/url";
 
 const AUTH_USER = Deno.env.get("AUTH_USER");
 const AUTH_PASSWORD = Deno.env.get("AUTH_PASSWORD");

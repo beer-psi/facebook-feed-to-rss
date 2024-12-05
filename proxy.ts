@@ -23,14 +23,15 @@ if (AUTH_USER || AUTH_PASSWORD) {
 
 app.use(requestId());
 app.use(async (c, next) => {
-    const connInfo = getConnInfo(c);
+    const xForwardedFor = c.req.header("x-forwarded-for");
+    const requestIp = xForwardedFor ? xForwardedFor.split(",")[0] : getConnInfo(c).remote.address;
     const method = c.req.method;
     const path = getPath(c.req.raw);
     const params = getQueryParams(c.req.raw.url);
     const time = new Date();
 
     console.log(
-        `<-- id=${c.get("requestId")} ip=${connInfo.remote.address} user_agent=${
+        `<-- id=${c.get("requestId")} ip=${requestIp} user_agent=${
             c.req.header("User-Agent")
         } method=${method} path=${path} query=${
             JSON.stringify(params ?? {})
@@ -53,22 +54,11 @@ app.use(async (c, next) => {
     );
 });
 
-app.on(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"], "/*", async (c) => {
+app.all("/*", (c) => {
     const requestUrl = new URL(c.req.raw.url);
     const url = requestUrl.pathname.slice(1) + requestUrl.search;
-    
-    const init: RequestInit = {
-        credentials: "include",
-        headers: c.req.header(),
-        method: c.req.method,
-        redirect: "manual",
-    };
 
-    if (!["GET", "HEAD"].includes(c.req.method)) {
-        init.body = await c.req.blob();
-    }
-
-    return fetch(url, init);
+    return fetch(url, c.req.raw);
 });
 
 Deno.serve({ port: PORT ? Number(PORT) : 8888 }, app.fetch);
